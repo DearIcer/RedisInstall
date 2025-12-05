@@ -1,0 +1,88 @@
+Service Manager Tool - Usage Guide
+====================================
+
+OVERVIEW
+--------
+This is a cross-platform Qt-based service management tool similar to PHPStudy.
+It supports both Windows and Linux platforms with a modern, flat design interface.
+
+KEY FEATURES
+-----------
+1. Installation Wizard with configuration options
+2. IP and Port configuration (defaults: 0.0.0.0:10833)
+3. Port availability check with process name detection
+4. Automatic startup on system boot
+5. Service management (Start/Stop/Uninstall)
+6. No administrator privileges required for installation
+7. Modern flat-style UI
+
+HOW TO USE
+----------
+
+FIRST RUN (Installation):
+  - When you run the application for the first time, it will show the Installation Wizard
+  - Configure IP address (default: 0.0.0.0)
+  - Configure port (default: 10833)
+  - The wizard will check if the port is available and show which process is using it if occupied
+  - Choose whether to enable automatic startup
+  - Complete the installation
+
+COMMAND LINE OPTIONS:
+  RedisInstall --help              Show help information
+  RedisInstall --install           Force run installation wizard
+  RedisInstall --service           Run as service (background mode)
+  RedisInstall                     Run management interface (if already installed)
+
+MANAGEMENT INTERFACE:
+  After installation, you can:
+  - Start/Stop the service
+  - View service status in real-time
+  - Modify IP address and port (requires service restart)
+  - Uninstall the service
+
+BUILDING THE PROJECT
+-------------------
+
+Windows:
+  1. Open the project in Qt Creator
+  2. Configure with Qt 6.5 or higher
+  3. Build -> Build Project
+  4. Run the executable
+
+OR using CMake:
+  mkdir build
+  cd build
+  cmake ..
+  cmake --build .
+
+Linux:
+  mkdir build
+  cd build
+  cmake ..
+  make
+
+TECHNICAL DETAILS
+-----------------
+
+Files:
+  - main.cpp              : Application entry point with mode selection
+  - mainwindow.*          : Service management interface
+  - installwizard.*       : Installation wizard interface
+  - serviceconfig.*       : Configuration management (stored in system config folder)
+  - servicemanager.*      : Cross-platform service installation/management
+  - portchecker.*         : Port availability checker with process detection
+
+Platform-Specific:
+  Windows: Uses Windows Service API (SC_HANDLE)
+  Linux:   Uses systemd service files
+
+Configuration Location:
+  Windows: %APPDATA%/RedisInstall/config.ini
+  Linux:   ~/.config/RedisInstall/config.ini
+
+NOTES
+-----
+- On Linux, service installation requires root privileges (sudo)
+- On Windows, the tool attempts to bypass UAC for normal user installation
+- Service configuration changes require service restart to take effect
+- Port checker shows the process name and PID when a port is occupied

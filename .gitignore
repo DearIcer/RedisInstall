@@ -1,0 +1,148 @@
+# C++ objects and libs
+*.slo
+*.lo
+*.o
+*.a
+*.la
+*.lai
+*.so
+*.so.*
+*.dll
+*.dylib
+
+# Qt-es
+object_script.*.Release
+object_script.*.Debug
+*_plugin_import.cpp
+/.qmake.cache
+/.qmake.stash
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+Makefile*
+*build-*
+*.qm
+.qtc_clangd
+
+# Qt Creator
+*.autosave
+*.user
+*.user.*
+CMakeLists.txt.user*
+
+# QtCreator local machine specific files for imported projects
+*creator.user*
+*_qmlcache.qrc
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*.cmake
+!CMakeLists.txt
+
+# Build directories
+build/
+build-*/
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+out/
+cmake-build-*/
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.x86_64
+*.i*86
+*.hex
+
+# Generated files
+*.autosave
+*.o
+*.obj
+*.moc
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# Deployment
+*.qm
+*.prl
+.qmake.cache
+.qmake.stash
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Application specific
+config.ini
+*.conf
