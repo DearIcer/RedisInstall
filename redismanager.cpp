@@ -30,6 +30,20 @@ RedisManager::RedisManager(QObject *parent)
             this, &RedisManager::onRedisProcessFinished);
     connect(m_redisProcess, &QProcess::errorOccurred,
             this, &RedisManager::onRedisProcessError);
+    connect(m_redisProcess, &QProcess::readyReadStandardOutput,
+            this, [this]() {
+                QString output = QString::fromUtf8(m_redisProcess->readAllStandardOutput());
+                if (!output.isEmpty()) {
+                    qDebug() << "[Redis Output]" << output.trimmed();
+                }
+            });
+    connect(m_redisProcess, &QProcess::readyReadStandardError,
+            this, [this]() {
+                QString error = QString::fromUtf8(m_redisProcess->readAllStandardError());
+                if (!error.isEmpty()) {
+                    qDebug() << "[Redis Error]" << error.trimmed();
+                }
+            });
     
     // Check if Redis is already installed
     m_redisPath = getDefaultInstallPath();
@@ -218,13 +232,67 @@ bool RedisManager::extractRedisArchive(const QString& archivePath, const QString
     
     return process.exitCode() == 0;
 #else
-    // Use tar on Linux
+    // Extract and compile Redis on Linux
     QProcess process;
     process.setWorkingDirectory(destPath);
-    process.start("tar", QStringList() << "-xzf" << archivePath);
-    process.waitForFinished(120000); // 120 seconds timeout
     
-    return process.exitCode() == 0;
+    // Extract tar.gz
+    process.start("tar", QStringList() << "-xzf" << archivePath);
+    if (!process.waitForFinished(120000)) {
+        qDebug() << "Tar extraction timeout";
+        return false;
+    }
+    
+    if (process.exitCode() != 0) {
+        qDebug() << "Tar extraction failed:" << process.readAllStandardError();
+        return false;
+    }
+    
+    // Find redis directory (usually redis-stable or redis-x.x.x)
+    QDir dir(destPath);
+    QStringList redisDirs = dir.entryList(QStringList() << "redis-*", QDir::Dirs);
+    if (redisDirs.isEmpty()) {
+        qDebug() << "Redis directory not found";
+        return false;
+    }
+    
+    QString redisSourceDir = destPath + "/" + redisDirs.first();
+    qDebug() << "Redis source directory:" << redisSourceDir;
+    
+    // Compile Redis
+    emit installationProgress("正在编译 Redis...");
+    process.setWorkingDirectory(redisSourceDir);
+    process.start("make", QStringList());
+    
+    if (!process.waitForFinished(300000)) { // 5 minutes timeout
+        qDebug() << "Make compilation timeout";
+        return false;
+    }
+    
+    if (process.exitCode() != 0) {
+        qDebug() << "Make compilation failed:" << process.readAllStandardError();
+        return false;
+    }
+    
+    // Copy binaries to install path
+    QString srcDir = redisSourceDir + "/src";
+    QFile::copy(srcDir + "/redis-server", destPath + "/redis-server");
+    QFile::copy(srcDir + "/redis-cli", destPath + "/redis-cli");
+    
+    // Set execute permissions
+    QFile::setPermissions(destPath + "/redis-server", 
+                          QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner |
+                          QFile::ReadGroup | QFile::ExeGroup |
+                          QFile::ReadOther | QFile::ExeOther);
+    QFile::setPermissions(destPath + "/redis-cli",
+                          QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner |
+                          QFile::ReadGroup | QFile::ExeGroup |
+                          QFile::ReadOther | QFile::ExeOther);
+    
+    // Clean up source directory
+    QDir(redisSourceDir).removeRecursively();
+    
+    return true;
 #endif
 }
 
@@ -330,20 +398,47 @@ bool RedisManager::startRedis(const QString& ip, int port, const QString& passwo
     QString redisExe = m_redisPath + "/redis-server";
 #endif
     
+    qDebug() << "[RedisManager] Attempting to start Redis:";
+    qDebug() << "  - Executable:" << redisExe;
+    qDebug() << "  - Config:" << m_redisConfigPath;
+    qDebug() << "  - Working Dir:" << m_redisPath;
+    
     if (!QFile::exists(redisExe)) {
-        m_lastError = "未找到 Redis 可执行文件";
+        m_lastError = "未找到 Redis 可执行文件: " + redisExe;
+        qDebug() << "[RedisManager] Error:" << m_lastError;
         return false;
     }
     
+    // Check if file is executable on Linux
+#ifndef Q_OS_WIN
+    QFileInfo fileInfo(redisExe);
+    if (!fileInfo.isExecutable()) {
+        qDebug() << "[RedisManager] Warning: redis-server is not executable, attempting to set permissions";
+        QFile::setPermissions(redisExe, 
+                              QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner |
+                              QFile::ReadGroup | QFile::ExeGroup |
+                              QFile::ReadOther | QFile::ExeOther);
+    }
+#endif
+    
     m_redisProcess->setWorkingDirectory(m_redisPath);
+    
+    // Enable process output for debugging
+    m_redisProcess->setProcessChannelMode(QProcess::MergedChannels);
+    
     m_redisProcess->start(redisExe, QStringList() << m_redisConfigPath);
     
     if (!m_redisProcess->waitForStarted(5000)) {
-        m_lastError = "Redis 启动失败";
+        m_lastError = "Redis 启动失败: " + m_redisProcess->errorString();
+        qDebug() << "[RedisManager] Error:" << m_lastError;
+        qDebug() << "  - Process state:" << m_redisProcess->state();
+        qDebug() << "  - Process error:" << m_redisProcess->error();
+        qDebug() << "  - Stderr:" << m_redisProcess->readAllStandardError();
         return false;
     }
     
     m_isRunning = true;
+    qDebug() << "[RedisManager] Redis started successfully!";
     emit redisStarted();
     return true;
 }

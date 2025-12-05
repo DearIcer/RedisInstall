@@ -11,6 +11,7 @@
 #include <QRegularExpressionValidator>
 #include <QRegularExpression>
 #include <QProgressBar>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -40,7 +41,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_statusTimer, &QTimer::timeout, this, &MainWindow::updateServiceStatus);
     m_statusTimer->start(2000);
     
-    updateServiceStatus();
+    // Immediately check service status on startup
+    QTimer::singleShot(100, this, &MainWindow::updateServiceStatus);
 }
 
 MainWindow::~MainWindow()
@@ -51,15 +53,18 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI()
 {
     setWindowTitle("服务管理器");
-    setMinimumSize(700, 600);
-    resize(700, 600);
+    
+    // Window will be maximized on startup
+    // Disable resize but allow minimize and close
+    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
+    setMinimumSize(800, 600);
     
     QWidget* centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
     
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
-    mainLayout->setContentsMargins(30, 30, 30, 30);
-    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(12);
     
     // Header
     QLabel* titleLabel = new QLabel("服务管理器");
@@ -70,8 +75,8 @@ void MainWindow::setupUI()
     QGroupBox* statusGroup = new QGroupBox("服务状态");
     statusGroup->setObjectName("groupBox");
     QVBoxLayout* statusLayout = new QVBoxLayout(statusGroup);
-    statusLayout->setSpacing(15);
-    statusLayout->setContentsMargins(20, 20, 20, 20);
+    statusLayout->setSpacing(10);
+    statusLayout->setContentsMargins(12, 12, 12, 12);
     
     QWidget* statusWidget = new QWidget();
     QHBoxLayout* statusRowLayout = new QHBoxLayout(statusWidget);
@@ -116,8 +121,8 @@ void MainWindow::setupUI()
     QGroupBox* configGroup = new QGroupBox("配置设置");
     configGroup->setObjectName("groupBox");
     QVBoxLayout* configLayout = new QVBoxLayout(configGroup);
-    configLayout->setSpacing(15);
-    configLayout->setContentsMargins(20, 20, 20, 20);
+    configLayout->setSpacing(8);
+    configLayout->setContentsMargins(12, 12, 12, 12);
     
     // IP Address
     QLabel* ipLabel = new QLabel("IP 地址:");
@@ -157,7 +162,6 @@ void MainWindow::setupUI()
     QLabel* passwordHintLabel = new QLabel("💡 设置密码可提高安全性");
     passwordHintLabel->setObjectName("hintLabel");
     
-    configLayout->addSpacing(10);
     configLayout->addWidget(passwordLabel);
     configLayout->addWidget(m_passwordEdit);
     configLayout->addWidget(passwordHintLabel);
@@ -173,8 +177,8 @@ void MainWindow::setupUI()
     QGroupBox* redisGroup = new QGroupBox("Redis 信息");
     redisGroup->setObjectName("groupBox");
     QVBoxLayout* redisLayout = new QVBoxLayout(redisGroup);
-    redisLayout->setSpacing(15);
-    redisLayout->setContentsMargins(20, 20, 20, 20);
+    redisLayout->setSpacing(10);
+    redisLayout->setContentsMargins(12, 12, 12, 12);
     
     // Redis version
     QWidget* versionWidget = new QWidget();
@@ -260,20 +264,21 @@ void MainWindow::applyModernStyle()
         }
         
         #titleLabel {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: #2c3e50;
-            padding: 10px 0;
+            padding: 5px 0;
+            margin-bottom: 5px;
         }
         
         QGroupBox {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #2c3e50;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            margin-top: 20px;
-            padding-top: 15px;
+            margin-top: 12px;
+            padding: 12px 10px 10px 10px;
             background-color: white;
         }
         
@@ -281,9 +286,9 @@ void MainWindow::applyModernStyle()
             subcontrol-origin: margin;
             subcontrol-position: top left;
             padding: 5px 15px;
+            left: 10px;
             background-color: white;
             color: #2c3e50;
-            border-radius: 4px;
         }
         
         #statusIcon {
@@ -297,20 +302,21 @@ void MainWindow::applyModernStyle()
         }
         
         #fieldLabel {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: #2c3e50;
             margin-top: 5px;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+            min-height: 18px;
         }
         
         #inputField {
-            padding: 12px 15px;
+            padding: 8px 10px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
-            font-size: 20px;
+            font-size: 16px;
             background-color: white;
-            min-height: 20px;
+            min-height: 14px;
         }
         
         #inputField:focus {
@@ -329,12 +335,13 @@ void MainWindow::applyModernStyle()
         }
         
         QPushButton {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
             border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
-            min-width: 120px;
+            min-width: 100px;
+            min-height: 30px;
         }
         
         #startButton {
@@ -525,21 +532,24 @@ void MainWindow::updateServiceStatus()
 {
     bool isRunning = m_redisManager->isRedisRunning();
     
-    if (isRunning != m_isServiceRunning) {
-        m_isServiceRunning = isRunning;
-        
-        if (m_isServiceRunning) {
-            m_statusIconLabel->setText("🟢");
-            m_statusLabel->setText("Redis 运行中");
-            m_statusLabel->setStyleSheet("color: #27ae60;");
-        } else {
-            m_statusIconLabel->setText("🔴");
-            m_statusLabel->setText("Redis 已停止");
-            m_statusLabel->setStyleSheet("color: #e74c3c;");
-        }
-        
-        updateButtons();
+    qDebug() << "[MainWindow] Checking service status:" << (isRunning ? "Running" : "Stopped");
+    
+    // Always update UI, not just when status changes
+    m_isServiceRunning = isRunning;
+    
+    if (m_isServiceRunning) {
+        m_statusIconLabel->setText("🟢");
+        m_statusLabel->setText("Redis 运行中");
+        m_statusLabel->setStyleSheet("color: #27ae60; font-weight: bold;");
+        qDebug() << "[MainWindow] Service status: RUNNING";
+    } else {
+        m_statusIconLabel->setText("🔴");
+        m_statusLabel->setText("Redis 已停止");
+        m_statusLabel->setStyleSheet("color: #e74c3c; font-weight: bold;");
+        qDebug() << "[MainWindow] Service status: STOPPED";
     }
+    
+    updateButtons();
 }
 
 void MainWindow::onDownloadRedisClicked()

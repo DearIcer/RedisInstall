@@ -14,8 +14,6 @@ qt_add_executable(RedisInstall
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
-    installwizard.cpp
-    installwizard.h
     serviceconfig.cpp
     serviceconfig.h
     servicemanager.cpp
