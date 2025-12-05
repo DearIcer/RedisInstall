@@ -2,6 +2,9 @@
 
 一个基于 Qt 6 的跨平台 Redis 服务管理工具，支持 Windows 和 Linux 系统。
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d76e6b06-6f2d-4a6f-9400-46d12e620495" />
+
+
 ## 功能特性
 
 - ✅ **自动下载安装** - 自动下载并安装 Redis（Windows 预编译版 / Linux 源码编译）
@@ -228,7 +231,6 @@ sudo dnf install lsof  # Fedora
 ### 代码规范
 
 - 界面语言：简体中文
-- 注释语言：中文
 - 代码风格：遵循 Qt 代码规范
 - 跨平台：使用 `#ifdef Q_OS_WIN` 进行条件编译
 
