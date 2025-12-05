@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     applyModernStyle();
     
-    // Connect Redis manager signals
+    // 连接 Redis 管理器信号
     connect(m_redisManager, &RedisManager::downloadProgress,
             this, &MainWindow::onRedisDownloadProgress);
     connect(m_redisManager, &RedisManager::downloadFinished,
@@ -37,11 +37,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_redisManager, &RedisManager::installationFinished,
             this, &MainWindow::onRedisInstallationFinished);
     
-    // Update status every 2 seconds
+    // 每 2 秒更新服务状态
     connect(m_statusTimer, &QTimer::timeout, this, &MainWindow::updateServiceStatus);
     m_statusTimer->start(2000);
     
-    // Immediately check service status on startup
+    // 启动时立即检查服务状态
     QTimer::singleShot(100, this, &MainWindow::updateServiceStatus);
 }
 
@@ -53,9 +53,6 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI()
 {
     setWindowTitle("服务管理器");
-    
-    // Window will be maximized on startup
-    // Disable resize but allow minimize and close
     setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
     setMinimumSize(800, 600);
     
@@ -66,12 +63,10 @@ void MainWindow::setupUI()
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(12);
     
-    // Header
     QLabel* titleLabel = new QLabel("服务管理器");
     titleLabel->setObjectName("titleLabel");
     mainLayout->addWidget(titleLabel);
     
-    // Status Group
     QGroupBox* statusGroup = new QGroupBox("服务状态");
     statusGroup->setObjectName("groupBox");
     QVBoxLayout* statusLayout = new QVBoxLayout(statusGroup);
@@ -94,7 +89,6 @@ void MainWindow::setupUI()
     
     statusLayout->addWidget(statusWidget);
     
-    // Control buttons
     QWidget* controlWidget = new QWidget();
     QHBoxLayout* controlLayout = new QHBoxLayout(controlWidget);
     controlLayout->setContentsMargins(0, 0, 0, 0);
@@ -117,14 +111,12 @@ void MainWindow::setupUI()
     statusLayout->addWidget(controlWidget);
     mainLayout->addWidget(statusGroup);
     
-    // Configuration Group
     QGroupBox* configGroup = new QGroupBox("配置设置");
     configGroup->setObjectName("groupBox");
     QVBoxLayout* configLayout = new QVBoxLayout(configGroup);
     configLayout->setSpacing(8);
     configLayout->setContentsMargins(12, 12, 12, 12);
     
-    // IP Address
     QLabel* ipLabel = new QLabel("IP 地址:");
     ipLabel->setObjectName("fieldLabel");
     m_ipEdit = new QLineEdit();
@@ -134,7 +126,6 @@ void MainWindow::setupUI()
     configLayout->addWidget(ipLabel);
     configLayout->addWidget(m_ipEdit);
     
-    // Port
     QLabel* portLabel = new QLabel("端口:");
     portLabel->setObjectName("fieldLabel");
     m_portEdit = new QLineEdit();
@@ -150,7 +141,6 @@ void MainWindow::setupUI()
     configLayout->addWidget(m_portEdit);
     configLayout->addWidget(m_portStatusLabel);
     
-    // Password
     QLabel* passwordLabel = new QLabel("密码:");
     passwordLabel->setObjectName("fieldLabel");
     m_passwordEdit = new QLineEdit();
@@ -166,21 +156,18 @@ void MainWindow::setupUI()
     configLayout->addWidget(m_passwordEdit);
     configLayout->addWidget(passwordHintLabel);
     
-    // Apply button
     m_applyButton = new QPushButton("应用更改");
     m_applyButton->setObjectName("applyButton");
     
     configLayout->addWidget(m_applyButton);
     mainLayout->addWidget(configGroup);
     
-    // Redis Information Group
     QGroupBox* redisGroup = new QGroupBox("Redis 信息");
     redisGroup->setObjectName("groupBox");
     QVBoxLayout* redisLayout = new QVBoxLayout(redisGroup);
     redisLayout->setSpacing(10);
     redisLayout->setContentsMargins(12, 12, 12, 12);
     
-    // Redis version
     QWidget* versionWidget = new QWidget();
     QHBoxLayout* versionLayout = new QHBoxLayout(versionWidget);
     versionLayout->setContentsMargins(0, 0, 0, 0);
@@ -198,7 +185,6 @@ void MainWindow::setupUI()
     
     redisLayout->addWidget(versionWidget);
     
-    // Redis path
     QWidget* pathWidget = new QWidget();
     QVBoxLayout* pathLayout = new QVBoxLayout(pathWidget);
     pathLayout->setContentsMargins(0, 0, 0, 0);
@@ -215,7 +201,6 @@ void MainWindow::setupUI()
     
     redisLayout->addWidget(pathWidget);
     
-    // Download/Install section
     if (!m_redisManager->isRedisInstalled()) {
         m_downloadRedisButton = new QPushButton("📥 下载并安装 Redis");
         m_downloadRedisButton->setObjectName("downloadButton");
@@ -241,10 +226,9 @@ void MainWindow::setupUI()
     }
     
     mainLayout->addWidget(redisGroup);
-    
     mainLayout->addStretch();
     
-    // Connect signals
+    // 连接信号
     connect(m_startButton, &QPushButton::clicked, this, &MainWindow::onStartServiceClicked);
     connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::onStopServiceClicked);
     connect(m_uninstallButton, &QPushButton::clicked, this, &MainWindow::onUninstallClicked);
@@ -499,7 +483,6 @@ void MainWindow::onApplyConfigClicked()
     ServiceConfig::instance().setPassword(password);
     ServiceConfig::instance().save();
     
-    // Update Redis config
     if (m_redisManager->isRedisInstalled()) {
         m_redisManager->updateRedisConfig(ip, port, password);
     }
@@ -534,7 +517,6 @@ void MainWindow::updateServiceStatus()
     
     qDebug() << "[MainWindow] Checking service status:" << (isRunning ? "Running" : "Stopped");
     
-    // Always update UI, not just when status changes
     m_isServiceRunning = isRunning;
     
     if (m_isServiceRunning) {
@@ -595,7 +577,6 @@ void MainWindow::onRedisInstallationFinished(bool success)
     if (success) {
         QMessageBox::information(this, "成功", "Redis 安装成功！\n\n现在可以启动 Redis 服务了。");
         
-        // Refresh UI
         if (m_redisVersionLabel) {
             m_redisVersionLabel->setText(m_redisManager->getRedisVersion());
         }
@@ -603,7 +584,6 @@ void MainWindow::onRedisInstallationFinished(bool success)
             m_redisPathLabel->setText(m_redisManager->getRedisPath());
         }
         
-        // Hide download section
         if (m_downloadRedisButton) {
             m_downloadRedisButton->setVisible(false);
         }
@@ -639,7 +619,7 @@ bool MainWindow::validatePort(int port, QString& errorMsg)
 
     int currentPort = ServiceConfig::instance().getPort();
     if (port == currentPort) {
-        return true; // Same port as current, no need to check
+        return true;
     }
 
     PortInfo info = PortChecker::checkPort(port);

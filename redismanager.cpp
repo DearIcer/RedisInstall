@@ -45,7 +45,7 @@ RedisManager::RedisManager(QObject *parent)
                 }
             });
     
-    // Check if Redis is already installed
+    // 检查 Redis 是否已安装
     m_redisPath = getDefaultInstallPath();
     m_redisConfigPath = m_redisPath + "/redis.conf";
     
@@ -139,7 +139,7 @@ void RedisManager::onDownloadFinished()
         return;
     }
     
-    // Save downloaded file
+    // 保存下载文件
     QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 #ifdef Q_OS_WIN
     m_downloadedFilePath = tempDir + "/redis.zip";
@@ -166,7 +166,7 @@ void RedisManager::onDownloadFinished()
     emit downloadFinished(true);
     emit installationProgress("下载完成，开始安装...");
     
-    // Auto install after download
+    // 下载后自动安装
     installRedis(m_redisPath);
 }
 
@@ -179,7 +179,7 @@ void RedisManager::installRedis(const QString& installPath)
         return;
     }
     
-    // Create installation directory
+    // 创建安装目录
     QDir dir;
     if (!dir.mkpath(installPath)) {
         m_lastError = "无法创建安装目录";
@@ -192,7 +192,7 @@ void RedisManager::installRedis(const QString& installPath)
     
     emit installationProgress("正在解压文件...");
     
-    // Extract archive
+    // 解压压缩包
     if (!extractRedisArchive(m_downloadedFilePath, installPath)) {
         m_lastError = "解压失败";
         emit errorOccurred(m_lastError);
@@ -200,7 +200,7 @@ void RedisManager::installRedis(const QString& installPath)
         return;
     }
     
-    // Create default config
+    // 创建默认配置
     emit installationProgress("正在创建配置文件...");
     if (!createRedisConfig("0.0.0.0", 10833)) {
         m_lastError = "创建配置文件失败";
@@ -213,7 +213,7 @@ void RedisManager::installRedis(const QString& installPath)
     emit installationProgress("安装完成！");
     emit installationFinished(true);
     
-    // Clean up downloaded file
+    // 清理下载文件
     QFile::remove(m_downloadedFilePath);
     m_downloadedFilePath.clear();
 }
@@ -221,22 +221,20 @@ void RedisManager::installRedis(const QString& installPath)
 bool RedisManager::extractRedisArchive(const QString& archivePath, const QString& destPath)
 {
 #ifdef Q_OS_WIN
-    // Use PowerShell to extract ZIP on Windows
     QProcess process;
     QString command = QString("powershell -command \"Expand-Archive -Path '%1' -DestinationPath '%2' -Force\"")
                          .arg(archivePath)
                          .arg(destPath);
     
     process.start(command);
-    process.waitForFinished(60000); // 60 seconds timeout
+    process.waitForFinished(60000);
     
     return process.exitCode() == 0;
 #else
-    // Extract and compile Redis on Linux
+    // Linux: 解压并编译 Redis
     QProcess process;
     process.setWorkingDirectory(destPath);
     
-    // Extract tar.gz
     process.start("tar", QStringList() << "-xzf" << archivePath);
     if (!process.waitForFinished(120000)) {
         qDebug() << "Tar extraction timeout";
@@ -248,7 +246,7 @@ bool RedisManager::extractRedisArchive(const QString& archivePath, const QString
         return false;
     }
     
-    // Find redis directory (usually redis-stable or redis-x.x.x)
+    // 查找 redis 目录
     QDir dir(destPath);
     QStringList redisDirs = dir.entryList(QStringList() << "redis-*", QDir::Dirs);
     if (redisDirs.isEmpty()) {
@@ -259,12 +257,12 @@ bool RedisManager::extractRedisArchive(const QString& archivePath, const QString
     QString redisSourceDir = destPath + "/" + redisDirs.first();
     qDebug() << "Redis source directory:" << redisSourceDir;
     
-    // Compile Redis
+    // 编译 Redis
     emit installationProgress("正在编译 Redis...");
     process.setWorkingDirectory(redisSourceDir);
     process.start("make", QStringList());
     
-    if (!process.waitForFinished(300000)) { // 5 minutes timeout
+    if (!process.waitForFinished(300000)) {
         qDebug() << "Make compilation timeout";
         return false;
     }
@@ -274,12 +272,12 @@ bool RedisManager::extractRedisArchive(const QString& archivePath, const QString
         return false;
     }
     
-    // Copy binaries to install path
+    // 复制二进制文件
     QString srcDir = redisSourceDir + "/src";
     QFile::copy(srcDir + "/redis-server", destPath + "/redis-server");
     QFile::copy(srcDir + "/redis-cli", destPath + "/redis-cli");
     
-    // Set execute permissions
+    // 设置执行权限
     QFile::setPermissions(destPath + "/redis-server", 
                           QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner |
                           QFile::ReadGroup | QFile::ExeGroup |
@@ -289,7 +287,7 @@ bool RedisManager::extractRedisArchive(const QString& archivePath, const QString
                           QFile::ReadGroup | QFile::ExeGroup |
                           QFile::ReadOther | QFile::ExeOther);
     
-    // Clean up source directory
+    // 清理源代码目录
     QDir(redisSourceDir).removeRecursively();
     
     return true;
@@ -347,7 +345,7 @@ bool RedisManager::createRedisConfigWithPassword(const QString& ip, int port, co
     out << "port " << port << "\n";
     out << "protected-mode yes\n";
     
-    // Add password if provided
+    // 如果提供了密码，则添加
     if (!password.isEmpty()) {
         out << "requirepass " << password << "\n";
     }
@@ -389,7 +387,7 @@ bool RedisManager::startRedis(const QString& ip, int port, const QString& passwo
         return false;
     }
     
-    // Update config with new IP, port and password
+    // 更新配置
     updateRedisConfig(ip, port, password);
     
 #ifdef Q_OS_WIN
@@ -409,7 +407,7 @@ bool RedisManager::startRedis(const QString& ip, int port, const QString& passwo
         return false;
     }
     
-    // Check if file is executable on Linux
+    // Linux: 检查文件是否可执行
 #ifndef Q_OS_WIN
     QFileInfo fileInfo(redisExe);
     if (!fileInfo.isExecutable()) {
@@ -422,10 +420,7 @@ bool RedisManager::startRedis(const QString& ip, int port, const QString& passwo
 #endif
     
     m_redisProcess->setWorkingDirectory(m_redisPath);
-    
-    // Enable process output for debugging
     m_redisProcess->setProcessChannelMode(QProcess::MergedChannels);
-    
     m_redisProcess->start(redisExe, QStringList() << m_redisConfigPath);
     
     if (!m_redisProcess->waitForStarted(5000)) {
@@ -458,7 +453,7 @@ bool RedisManager::stopRedis()
         }
     }
     
-    // Also kill any orphaned Redis processes
+    // 杀死孤儿进程
     killRedisProcess();
     
     m_isRunning = false;
@@ -514,7 +509,6 @@ void RedisManager::uninstallRedis()
 {
     stopRedis();
     
-    // Remove Redis directory
     QDir dir(m_redisPath);
     if (dir.exists()) {
         dir.removeRecursively();

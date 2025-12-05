@@ -56,7 +56,6 @@ PortInfo PortChecker::checkPortWindows(int port)
                 info.isInUse = true;
                 info.processId = pTcpTable->table[i].dwOwningPid;
                 
-                // Get process name
                 HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
                 if (hProcessSnap != INVALID_HANDLE_VALUE) {
                     PROCESSENTRY32 pe32;
@@ -97,7 +96,6 @@ PortInfo PortChecker::checkPortLinux(int port)
         info.isInUse = true;
         info.processId = output.toInt();
         
-        // Get process name
         QProcess nameProcess;
         nameProcess.start("ps", QStringList() << "-p" << QString::number(info.processId) << "-o" << "comm=");
         nameProcess.waitForFinished();

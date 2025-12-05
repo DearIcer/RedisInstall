@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     
-    // Show main management window (maximized)
+    // 显示最大化的主窗口
     MainWindow w;
     w.showMaximized();
     
