@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "servicemanager.h"
+#include "redismanager.h"
 #include "serviceconfig.h"
 #include "portchecker.h"
 #include <QVBoxLayout>
@@ -9,6 +10,7 @@
 #include <QMessageBox>
 #include <QRegularExpressionValidator>
 #include <QRegularExpression>
+#include <QProgressBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -18,10 +20,21 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     
     m_serviceManager = new ServiceManager(this);
+    m_redisManager = new RedisManager(this);
     m_statusTimer = new QTimer(this);
     
     setupUI();
     applyModernStyle();
+    
+    // Connect Redis manager signals
+    connect(m_redisManager, &RedisManager::downloadProgress,
+            this, &MainWindow::onRedisDownloadProgress);
+    connect(m_redisManager, &RedisManager::downloadFinished,
+            this, &MainWindow::onRedisDownloadFinished);
+    connect(m_redisManager, &RedisManager::installationProgress,
+            this, &MainWindow::onRedisInstallationProgress);
+    connect(m_redisManager, &RedisManager::installationFinished,
+            this, &MainWindow::onRedisInstallationFinished);
     
     // Update status every 2 seconds
     connect(m_statusTimer, &QTimer::timeout, this, &MainWindow::updateServiceStatus);
@@ -38,7 +51,8 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI()
 {
     setWindowTitle("服务管理器");
-    setFixedSize(700, 500);
+    setMinimumSize(700, 600);
+    resize(700, 600);
     
     QWidget* centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
@@ -57,6 +71,7 @@ void MainWindow::setupUI()
     statusGroup->setObjectName("groupBox");
     QVBoxLayout* statusLayout = new QVBoxLayout(statusGroup);
     statusLayout->setSpacing(15);
+    statusLayout->setContentsMargins(20, 20, 20, 20);
     
     QWidget* statusWidget = new QWidget();
     QHBoxLayout* statusRowLayout = new QHBoxLayout(statusWidget);
@@ -102,6 +117,7 @@ void MainWindow::setupUI()
     configGroup->setObjectName("groupBox");
     QVBoxLayout* configLayout = new QVBoxLayout(configGroup);
     configLayout->setSpacing(15);
+    configLayout->setContentsMargins(20, 20, 20, 20);
     
     // IP Address
     QLabel* ipLabel = new QLabel("IP 地址:");
@@ -129,12 +145,98 @@ void MainWindow::setupUI()
     configLayout->addWidget(m_portEdit);
     configLayout->addWidget(m_portStatusLabel);
     
+    // Password
+    QLabel* passwordLabel = new QLabel("密码:");
+    passwordLabel->setObjectName("fieldLabel");
+    m_passwordEdit = new QLineEdit();
+    m_passwordEdit->setObjectName("inputField");
+    m_passwordEdit->setText(ServiceConfig::instance().getPassword());
+    m_passwordEdit->setPlaceholderText("留空表示不设置密码");
+    m_passwordEdit->setEchoMode(QLineEdit::Password);
+    
+    QLabel* passwordHintLabel = new QLabel("💡 设置密码可提高安全性");
+    passwordHintLabel->setObjectName("hintLabel");
+    
+    configLayout->addSpacing(10);
+    configLayout->addWidget(passwordLabel);
+    configLayout->addWidget(m_passwordEdit);
+    configLayout->addWidget(passwordHintLabel);
+    
     // Apply button
     m_applyButton = new QPushButton("应用更改");
     m_applyButton->setObjectName("applyButton");
     
     configLayout->addWidget(m_applyButton);
     mainLayout->addWidget(configGroup);
+    
+    // Redis Information Group
+    QGroupBox* redisGroup = new QGroupBox("Redis 信息");
+    redisGroup->setObjectName("groupBox");
+    QVBoxLayout* redisLayout = new QVBoxLayout(redisGroup);
+    redisLayout->setSpacing(15);
+    redisLayout->setContentsMargins(20, 20, 20, 20);
+    
+    // Redis version
+    QWidget* versionWidget = new QWidget();
+    QHBoxLayout* versionLayout = new QHBoxLayout(versionWidget);
+    versionLayout->setContentsMargins(0, 0, 0, 0);
+    
+    QLabel* versionTitleLabel = new QLabel("版本:");
+    versionTitleLabel->setObjectName("fieldLabel");
+    
+    m_redisVersionLabel = new QLabel(m_redisManager->isRedisInstalled() ? 
+                                     m_redisManager->getRedisVersion() : "未安装");
+    m_redisVersionLabel->setObjectName("statusLabel");
+    
+    versionLayout->addWidget(versionTitleLabel);
+    versionLayout->addWidget(m_redisVersionLabel);
+    versionLayout->addStretch();
+    
+    redisLayout->addWidget(versionWidget);
+    
+    // Redis path
+    QWidget* pathWidget = new QWidget();
+    QVBoxLayout* pathLayout = new QVBoxLayout(pathWidget);
+    pathLayout->setContentsMargins(0, 0, 0, 0);
+    
+    QLabel* pathTitleLabel = new QLabel("安装路径:");
+    pathTitleLabel->setObjectName("fieldLabel");
+    
+    m_redisPathLabel = new QLabel(m_redisManager->getRedisPath());
+    m_redisPathLabel->setObjectName("pathLabel");
+    m_redisPathLabel->setWordWrap(true);
+    
+    pathLayout->addWidget(pathTitleLabel);
+    pathLayout->addWidget(m_redisPathLabel);
+    
+    redisLayout->addWidget(pathWidget);
+    
+    // Download/Install section
+    if (!m_redisManager->isRedisInstalled()) {
+        m_downloadRedisButton = new QPushButton("📥 下载并安装 Redis");
+        m_downloadRedisButton->setObjectName("downloadButton");
+        redisLayout->addWidget(m_downloadRedisButton);
+        
+        m_downloadProgressBar = new QProgressBar();
+        m_downloadProgressBar->setObjectName("progressBar");
+        m_downloadProgressBar->setVisible(false);
+        redisLayout->addWidget(m_downloadProgressBar);
+        
+        m_installStatusLabel = new QLabel();
+        m_installStatusLabel->setObjectName("installStatusLabel");
+        m_installStatusLabel->setWordWrap(true);
+        m_installStatusLabel->setVisible(false);
+        redisLayout->addWidget(m_installStatusLabel);
+        
+        connect(m_downloadRedisButton, &QPushButton::clicked, 
+                this, &MainWindow::onDownloadRedisClicked);
+    } else {
+        m_downloadRedisButton = nullptr;
+        m_downloadProgressBar = nullptr;
+        m_installStatusLabel = nullptr;
+    }
+    
+    mainLayout->addWidget(redisGroup);
     
     mainLayout->addStretch();
     
@@ -164,33 +266,24 @@ void MainWindow::applyModernStyle()
             padding: 10px 0;
         }
         
-        #groupBox {
-            font-size: 14px;
-            font-weight: 600;
-            color: #2c3e50;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            margin-top: 15px;
-            padding-top: 20px;
-            background-color: white;
-        }
-        
         QGroupBox {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: #2c3e50;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            margin-top: 15px;
-            padding-top: 20px;
+            margin-top: 20px;
+            padding-top: 15px;
             background-color: white;
         }
         
         QGroupBox::title {
             subcontrol-origin: margin;
             subcontrol-position: top left;
-            padding: 0 10px;
+            padding: 5px 15px;
+            background-color: white;
             color: #2c3e50;
+            border-radius: 4px;
         }
         
         #statusIcon {
@@ -226,6 +319,12 @@ void MainWindow::applyModernStyle()
         
         #portStatusLabel {
             font-size: 14px;
+            padding: 5px;
+        }
+        
+        #hintLabel {
+            font-size: 12px;
+            color: #3498db;
             padding: 5px;
         }
         
@@ -281,6 +380,43 @@ void MainWindow::applyModernStyle()
         #applyButton:hover {
             background-color: #2980b9;
         }
+        
+        #downloadButton {
+            background-color: #9b59b6;
+            color: white;
+            padding: 12px 20px;
+        }
+        
+        #downloadButton:hover {
+            background-color: #8e44ad;
+        }
+        
+        #downloadButton:disabled {
+            background-color: #95a5a6;
+        }
+        
+        #progressBar {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        #progressBar::chunk {
+            background-color: #3498db;
+            border-radius: 4px;
+        }
+        
+        #pathLabel {
+            font-size: 12px;
+            color: #7f8c8d;
+            padding: 5px;
+        }
+        
+        #installStatusLabel {
+            font-size: 13px;
+            color: #27ae60;
+            padding: 5px;
+        }
     )";
     
     setStyleSheet(styleSheet);
@@ -288,21 +424,30 @@ void MainWindow::applyModernStyle()
 
 void MainWindow::onStartServiceClicked()
 {
-    if (m_serviceManager->startService("RedisInstall")) {
-        QMessageBox::information(this, "成功", "服务启动成功！");
+    if (!m_redisManager->isRedisInstalled()) {
+        QMessageBox::warning(this, "错误", "Redis 尚未安装，请先下载并安装 Redis。");
+        return;
+    }
+    
+    QString ip = m_ipEdit->text();
+    int port = m_portEdit->text().toInt();
+    QString password = m_passwordEdit->text();
+    
+    if (m_redisManager->startRedis(ip, port, password)) {
+        QMessageBox::information(this, "成功", "Redis 服务启动成功！");
         updateServiceStatus();
     } else {
-        QMessageBox::warning(this, "错误", "服务启动失败: " + m_serviceManager->getLastError());
+        QMessageBox::warning(this, "错误", "Redis 启动失败: " + m_redisManager->getLastError());
     }
 }
 
 void MainWindow::onStopServiceClicked()
 {
-    if (m_serviceManager->stopService("RedisInstall")) {
-        QMessageBox::information(this, "成功", "服务停止成功！");
+    if (m_redisManager->stopRedis()) {
+        QMessageBox::information(this, "成功", "Redis 服务停止成功！");
         updateServiceStatus();
     } else {
-        QMessageBox::warning(this, "错误", "服务停止失败: " + m_serviceManager->getLastError());
+        QMessageBox::warning(this, "错误", "Redis 停止失败: " + m_redisManager->getLastError());
     }
 }
 
@@ -339,13 +484,22 @@ void MainWindow::onApplyConfigClicked()
         return;
     }
     
-    ServiceConfig::instance().setIpAddress(m_ipEdit->text());
+    QString ip = m_ipEdit->text();
+    QString password = m_passwordEdit->text();
+    
+    ServiceConfig::instance().setIpAddress(ip);
     ServiceConfig::instance().setPort(port);
+    ServiceConfig::instance().setPassword(password);
     ServiceConfig::instance().save();
+    
+    // Update Redis config
+    if (m_redisManager->isRedisInstalled()) {
+        m_redisManager->updateRedisConfig(ip, port, password);
+    }
     
     QMessageBox::information(this, "成功", 
                             "配置更新成功！\n\n"
-                            "请重启服务使更改生效。");
+                            "请重启 Redis 服务使更改生效。");
 }
 
 void MainWindow::onPortTextChanged(const QString& text)
@@ -369,22 +523,94 @@ void MainWindow::onPortTextChanged(const QString& text)
 
 void MainWindow::updateServiceStatus()
 {
-    bool isRunning = m_serviceManager->isServiceRunning("RedisInstall");
+    bool isRunning = m_redisManager->isRedisRunning();
     
     if (isRunning != m_isServiceRunning) {
         m_isServiceRunning = isRunning;
         
         if (m_isServiceRunning) {
             m_statusIconLabel->setText("🟢");
-            m_statusLabel->setText("服务运行中");
+            m_statusLabel->setText("Redis 运行中");
             m_statusLabel->setStyleSheet("color: #27ae60;");
         } else {
             m_statusIconLabel->setText("🔴");
-            m_statusLabel->setText("服务已停止");
+            m_statusLabel->setText("Redis 已停止");
             m_statusLabel->setStyleSheet("color: #e74c3c;");
         }
         
         updateButtons();
+    }
+}
+
+void MainWindow::onDownloadRedisClicked()
+{
+    if (m_downloadRedisButton) {
+        m_downloadRedisButton->setEnabled(false);
+        m_downloadProgressBar->setVisible(true);
+        m_installStatusLabel->setVisible(true);
+    }
+    
+    m_redisManager->downloadRedis();
+}
+
+void MainWindow::onRedisDownloadProgress(qint64 received, qint64 total)
+{
+    if (m_downloadProgressBar && total > 0) {
+        int progress = (int)((received * 100) / total);
+        m_downloadProgressBar->setValue(progress);
+    }
+}
+
+void MainWindow::onRedisDownloadFinished(bool success)
+{
+    if (!success) {
+        if (m_downloadRedisButton) {
+            m_downloadRedisButton->setEnabled(true);
+            m_downloadProgressBar->setVisible(false);
+            m_installStatusLabel->setVisible(false);
+        }
+        QMessageBox::warning(this, "错误", "Redis 下载失败: " + m_redisManager->getLastError());
+    }
+}
+
+void MainWindow::onRedisInstallationProgress(const QString& message)
+{
+    if (m_installStatusLabel) {
+        m_installStatusLabel->setText(message);
+    }
+}
+
+void MainWindow::onRedisInstallationFinished(bool success)
+{
+    if (success) {
+        QMessageBox::information(this, "成功", "Redis 安装成功！\n\n现在可以启动 Redis 服务了。");
+        
+        // Refresh UI
+        if (m_redisVersionLabel) {
+            m_redisVersionLabel->setText(m_redisManager->getRedisVersion());
+        }
+        if (m_redisPathLabel) {
+            m_redisPathLabel->setText(m_redisManager->getRedisPath());
+        }
+        
+        // Hide download section
+        if (m_downloadRedisButton) {
+            m_downloadRedisButton->setVisible(false);
+        }
+        if (m_downloadProgressBar) {
+            m_downloadProgressBar->setVisible(false);
+        }
+        if (m_installStatusLabel) {
+            m_installStatusLabel->setVisible(false);
+        }
+    } else {
+        QMessageBox::warning(this, "错误", "Redis 安装失败: " + m_redisManager->getLastError());
+        
+        if (m_downloadRedisButton) {
+            m_downloadRedisButton->setEnabled(true);
+            m_downloadProgressBar->setVisible(false);
+            m_installStatusLabel->setVisible(false);
+        }
     }
 }
 

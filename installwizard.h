@@ -48,6 +48,7 @@ private:
     QWidget* m_configPage;
     QLineEdit* m_ipEdit;
     QLineEdit* m_portEdit;
+    QLineEdit* m_passwordEdit;
     QLabel* m_portStatusLabel;
     QCheckBox* m_autoStartCheckBox;
     

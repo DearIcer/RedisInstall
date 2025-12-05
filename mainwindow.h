@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QTimer>
+#include <QProgressBar>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -14,6 +15,7 @@ class MainWindow;
 QT_END_NAMESPACE
 
 class ServiceManager;
+class RedisManager;
 
 class MainWindow : public QMainWindow
 {
@@ -30,6 +32,13 @@ private slots:
     void onApplyConfigClicked();
     void onPortTextChanged(const QString& text);
     void updateServiceStatus();
+    
+    // Redis management slots
+    void onDownloadRedisClicked();
+    void onRedisDownloadProgress(qint64 received, qint64 total);
+    void onRedisDownloadFinished(bool success);
+    void onRedisInstallationProgress(const QString& message);
+    void onRedisInstallationFinished(bool success);
 
 private:
     void setupUI();
@@ -41,6 +50,7 @@ private:
     Ui::MainWindow *ui;
     
     ServiceManager* m_serviceManager;
+    RedisManager* m_redisManager;
     QTimer* m_statusTimer;
     
     // UI Components
@@ -49,11 +59,18 @@ private:
     QPushButton* m_startButton;
     QPushButton* m_stopButton;
     QPushButton* m_uninstallButton;
+    QPushButton* m_downloadRedisButton;
     
     QLineEdit* m_ipEdit;
     QLineEdit* m_portEdit;
+    QLineEdit* m_passwordEdit;
     QLabel* m_portStatusLabel;
     QPushButton* m_applyButton;
+    
+    QLabel* m_redisVersionLabel;
+    QLabel* m_redisPathLabel;
+    QProgressBar* m_downloadProgressBar;
+    QLabel* m_installStatusLabel;
     
     bool m_isServiceRunning;
 };

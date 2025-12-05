@@ -22,6 +22,8 @@ qt_add_executable(RedisInstall
     servicemanager.h
     portchecker.cpp
     portchecker.h
+    redismanager.cpp
+    redismanager.h
 )
 
 target_link_libraries(RedisInstall

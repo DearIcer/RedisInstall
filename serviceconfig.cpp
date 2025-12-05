@@ -12,6 +12,7 @@ ServiceConfig& ServiceConfig::instance()
 ServiceConfig::ServiceConfig()
     : m_ipAddress("0.0.0.0")
     , m_port(10833)
+    , m_password("")
     , m_autoStart(true)
     , m_serviceInstalled(false)
 {
@@ -43,6 +44,16 @@ void ServiceConfig::setPort(int port)
     m_port = port;
 }
 
+QString ServiceConfig::getPassword() const
+{
+    return m_password;
+}
+
+void ServiceConfig::setPassword(const QString& password)
+{
+    m_password = password;
+}
+
 bool ServiceConfig::isAutoStart() const
 {
     return m_autoStart;
@@ -68,6 +79,7 @@ void ServiceConfig::save()
     m_settings->beginGroup("Service");
     m_settings->setValue("IpAddress", m_ipAddress);
     m_settings->setValue("Port", m_port);
+    m_settings->setValue("Password", m_password);
     m_settings->setValue("AutoStart", m_autoStart);
     m_settings->setValue("Installed", m_serviceInstalled);
     m_settings->endGroup();
@@ -79,6 +91,7 @@ void ServiceConfig::load()
     m_settings->beginGroup("Service");
     m_ipAddress = m_settings->value("IpAddress", "0.0.0.0").toString();
     m_port = m_settings->value("Port", 10833).toInt();
+    m_password = m_settings->value("Password", "").toString();
     m_autoStart = m_settings->value("AutoStart", true).toBool();
     m_serviceInstalled = m_settings->value("Installed", false).toBool();
     m_settings->endGroup();

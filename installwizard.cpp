@@ -150,6 +150,22 @@ void InstallWizard::createConfigPage()
     layout->addWidget(m_portEdit);
     layout->addWidget(m_portStatusLabel);
     layout->addSpacing(10);
+    
+    // Password
+    QLabel* passwordLabel = new QLabel("密码:");
+    passwordLabel->setObjectName("fieldLabel");
+    m_passwordEdit = new QLineEdit();
+    m_passwordEdit->setObjectName("inputField");
+    m_passwordEdit->setPlaceholderText("留空表示不设置密码（推荐设置）");
+    m_passwordEdit->setEchoMode(QLineEdit::Password);
+    
+    QLabel* passwordHintLabel = new QLabel("💡 设置密码可保护数据安全");
+    passwordHintLabel->setObjectName("hintLabel");
+    
+    layout->addWidget(passwordLabel);
+    layout->addWidget(m_passwordEdit);
+    layout->addWidget(passwordHintLabel);
+    layout->addSpacing(10);
     layout->addWidget(m_autoStartCheckBox);
     layout->addStretch();
 
@@ -284,6 +300,12 @@ void InstallWizard::applyModernStyle()
             padding: 5px;
         }
         
+        #hintLabel {
+            font-size: 12px;
+            color: #3498db;
+            padding: 5px;
+        }
+        
         QPushButton {
             padding: 8px 20px;
             border: none;
@@ -399,6 +421,7 @@ void InstallWizard::onInstallClicked()
     // Save configuration
     ServiceConfig::instance().setIpAddress(m_ipEdit->text());
     ServiceConfig::instance().setPort(m_portEdit->text().toInt());
+    ServiceConfig::instance().setPassword(m_passwordEdit->text());
     ServiceConfig::instance().setAutoStart(m_autoStartCheckBox->isChecked());
     ServiceConfig::instance().setServiceInstalled(true);
     ServiceConfig::instance().save();

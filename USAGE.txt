@@ -1,55 +1,66 @@
-Service Manager Tool - Usage Guide
+Redis 服务管理工具 - 使用指南
 ====================================
 
-OVERVIEW
+概述
 --------
-This is a cross-platform Qt-based service management tool similar to PHPStudy.
-It supports both Windows and Linux platforms with a modern, flat design interface.
+这是一个跨平台的 Redis 服务管理工具，支持 Windows 和 Linux 平台。
+提供 Redis 的下载、安装、配置和服务管理功能，界面简洁美观。
 
-KEY FEATURES
+核心功能
 -----------
-1. Installation Wizard with configuration options
-2. IP and Port configuration (defaults: 0.0.0.0:10833)
-3. Port availability check with process name detection
-4. Automatic startup on system boot
-5. Service management (Start/Stop/Uninstall)
-6. No administrator privileges required for installation
-7. Modern flat-style UI
+1. 自动下载并安装 Redis
+2. IP 和端口配置（默认: 0.0.0.0:10833）
+3. 端口可用性检查及占用进程检测
+4. 开机自动启动设置
+5. Redis 服务启动/停止/重启
+6. 图形化配置管理
+7. 服务卸载功能
+8. 现代化扁平风格界面（中文）
 
-HOW TO USE
+使用方法
 ----------
 
-FIRST RUN (Installation):
-  - When you run the application for the first time, it will show the Installation Wizard
-  - Configure IP address (default: 0.0.0.0)
-  - Configure port (default: 10833)
-  - The wizard will check if the port is available and show which process is using it if occupied
-  - Choose whether to enable automatic startup
-  - Complete the installation
+首次运行（安装向导）：
+  - 首次运行会显示安装向导
+  - 配置 IP 地址（默认: 0.0.0.0）
+  - 配置端口（默认: 10833）
+  - 向导会自动检查端口是否被占用，显示占用进程信息
+  - 选择是否开机自动启动
+  - 完成安装向导配置
 
-COMMAND LINE OPTIONS:
-  RedisInstall --help              Show help information
-  RedisInstall --install           Force run installation wizard
-  RedisInstall --service           Run as service (background mode)
-  RedisInstall                     Run management interface (if already installed)
+下载和安装 Redis：
+  - 在管理界面点击"下载并安装 Redis"按钮
+  - 系统会自动下载适合当前平台的 Redis 版本
+  - Windows: 下载预编译的 Redis 5.0.14.1
+  - Linux: 下载 Redis stable 版本源码
+  - 自动解压并配置
+  - 显示下载进度和安装状态
 
-MANAGEMENT INTERFACE:
-  After installation, you can:
-  - Start/Stop the service
-  - View service status in real-time
-  - Modify IP address and port (requires service restart)
-  - Uninstall the service
+服务管理界面：
+  安装完成后，您可以：
+  - 启动/停止 Redis 服务
+  - 实时查看服务运行状态
+  - 修改 IP 地址和端口（需要重启服务生效）
+  - 查看 Redis 版本和安装路径
+  - 卸载服务
 
-BUILDING THE PROJECT
+命令行选项
+-------------------
+  RedisInstall --help              显示帮助信息
+  RedisInstall --install           强制运行安装向导
+  RedisInstall --service           以服务模式运行（后台）
+  RedisInstall                     运行管理界面（已安装时）
+
+构建项目
 -------------------
 
 Windows:
-  1. Open the project in Qt Creator
-  2. Configure with Qt 6.5 or higher
-  3. Build -> Build Project
-  4. Run the executable
+  1. 使用 Qt Creator 打开项目
+  2. 配置 Qt 6.5 或更高版本
+  3. 构建 -> 构建项目
+  4. 运行可执行文件
 
-OR using CMake:
+或使用 CMake:
   mkdir build
   cd build
   cmake ..
@@ -61,28 +72,58 @@ Linux:
   cmake ..
   make
 
-TECHNICAL DETAILS
+技术细节
 -----------------
 
-Files:
-  - main.cpp              : Application entry point with mode selection
-  - mainwindow.*          : Service management interface
-  - installwizard.*       : Installation wizard interface
-  - serviceconfig.*       : Configuration management (stored in system config folder)
-  - servicemanager.*      : Cross-platform service installation/management
-  - portchecker.*         : Port availability checker with process detection
+文件说明:
+  - main.cpp              : 应用程序入口，模式选择
+  - mainwindow.*          : 服务管理主界面
+  - installwizard.*       : 安装向导界面
+  - serviceconfig.*       : 配置管理（保存到系统配置目录）
+  - servicemanager.*      : 跨平台服务安装/管理
+  - portchecker.*         : 端口检查及进程检测
+  - redismanager.*        : Redis 下载、安装和运行管理
 
-Platform-Specific:
-  Windows: Uses Windows Service API (SC_HANDLE)
-  Linux:   Uses systemd service files
+平台特性:
+  Windows: 
+    - 使用 Windows Service API
+    - PowerShell 解压 ZIP 文件
+    - 下载预编译的 Redis 可执行文件
+  
+  Linux: 
+    - 使用 systemd 服务文件
+    - tar 解压源码包
+    - 需要编译 Redis（或使用包管理器）
 
-Configuration Location:
+配置文件位置:
   Windows: %APPDATA%/RedisInstall/config.ini
   Linux:   ~/.config/RedisInstall/config.ini
 
-NOTES
+Redis 安装位置:
+  Windows: %LOCALAPPDATA%/RedisInstall/Redis
+  Linux:   ~/.local/share/RedisInstall/redis
+
+注意事项
 -----
-- On Linux, service installation requires root privileges (sudo)
-- On Windows, the tool attempts to bypass UAC for normal user installation
-- Service configuration changes require service restart to take effect
-- Port checker shows the process name and PID when a port is occupied
+- Linux 上服务安装需要 root 权限（sudo）
+- Windows 上工具尝试绕过 UAC 以普通用户权限安装
+- 修改配置后需重启 Redis 服务才能生效
+- 端口检查会显示占用该端口的进程名称和 PID
+- Redis 下载需要网络连接
+- 首次下载 Redis 可能需要几分钟时间
+
+故障排除
+--------
+1. Redis 启动失败:
+   - 检查端口是否被占用
+   - 查看 Redis 日志文件（安装目录下的 redis.log）
+   - 确认配置文件格式正确
+
+2. 下载失败:
+   - 检查网络连接
+   - 确认防火墙设置
+   - 可手动下载 Redis 并放置到指定目录
+
+3. 权限问题:
+   - Windows: 以管理员身份运行
+   - Linux: 使用 sudo 运行
